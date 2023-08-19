@@ -117,5 +117,37 @@ class LittleVectorDB:
         """
         with open(filename, 'rb') as file:
             return pickle.load(file)
-        
 
+    def batch_insert(self, vectors, vector_ids=None):
+            """
+            Insert multiple vectors into the database at once.
+
+            Parameters:
+            - vectors (list of lists or numpy array): The vectors to be inserted.
+            - vector_ids (list, optional): A list of unique identifiers for the vectors. 
+                                        If not provided, auto-incremented IDs are used.
+
+            Returns:
+            - list: The IDs associated with the inserted vectors.
+            """
+            if vector_ids is None:
+                vector_ids = list(range(len(self.vectors), len(self.vectors) + len(vectors)))
+
+            self.vectors.extend(vectors)
+            self.ids.extend(vector_ids)
+
+            return vector_ids
+
+    def batch_query(self, vectors, top_k=5):
+        """
+        Find the top_k most similar vectors in the database for each query vector.
+
+        Parameters:
+        - vectors (list of lists or numpy array): The query vectors.
+        - top_k (int): Number of top similar vectors to retrieve for each query.
+
+        Returns:
+        - list of lists: Each inner list contains tuples for a query vector, 
+                         where each tuple is (vector_id, similarity_score).
+        """
+        return [self.query(vector, top_k) for vector in vectors]
