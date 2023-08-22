@@ -1,29 +1,56 @@
 import spacy
+import time
 from littlevectordb.core import LittleVectorDB
 
 def word_embeddings_example():
-    # Load spaCy's medium-sized English model with word vectors
+    # Load the spaCy model for word embeddings
     nlp = spacy.load("en_core_web_md")
 
-    # Create an instance of LittleVectorDB
-    db = LittleVectorDB()
+    # Words to insert into the database
+    words = ["king", "queen", "man", "woman", "apple", "orange", "fruit", "computer", "laptop"]
 
-    # List of words to insert into the database
-    words = ["king", "queen", "man", "woman", "child", "royalty", "monarch", "prince", "princess"]
+    # Query words for testing
+    query_words = ["monarch", "lady", "pc"]
 
-    # Insert word embeddings into the database
-    for word in words:
-        vector = nlp(word).vector
-        db.insert(vector, vector_id=word)
+    # Test for each metric
+    for metric in ["cosine", "euclidean"]:
+        print("=" * 40)
+        print(f"Testing for {metric.upper()} metric:")
+        print("-" * 40)
 
-    # Query the database with the embedding of the word "king"
-    query_vector = nlp("king").vector
-    similar_words = db.query(query_vector, top_k=5)
+        # Create a new database instance with the specified metric
+        db = LittleVectorDB(distance_metric=metric)
 
-    # Display the results
-    print("Words similar to 'king':")
-    for word, similarity in similar_words:
-        print(f"{word}: {similarity:.4f}")
+        # Insert word embeddings into the database
+        for word in words:
+            vector = nlp(word).vector
+            db.insert(vector, vector_id=word)
+
+        # Build the Annoy index
+        db.build_index()
+
+        # Query the database using the Annoy index
+        print("Using Annoy Index:")
+        start_time = time.time()
+        for word in query_words:
+            vector = nlp(word).vector
+            results = db.query(vector, top_k=3)
+            print(f"Words similar to '{word}': {results}")
+        indexed_time = time.time() - start_time
+        print(f"Time taken with Annoy index: {indexed_time:.4f} seconds")
+        print()
+
+        # Query the database using brute-force method
+        print("Using Brute-Force:")
+        start_time = time.time()
+        for word in query_words:
+            vector = nlp(word).vector
+            results = db.query(vector, top_k=3, use_index=False)
+            print(f"Words similar to '{word}': {results}")
+        bruteforce_time = time.time() - start_time
+        print(f"Time taken with brute-force: {bruteforce_time:.4f} seconds")
+        print()
+        
 
 if __name__ == "__main__":
     word_embeddings_example()
